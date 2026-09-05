@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Detective Statistics</title><link rel="stylesheet" href="./css/style.css"></head>
+<body>
+  <main class="stats-shell">
+    <header class="topbar"><div><strong>Detective Records</strong><span>Search by public user ID or username</span></div><nav><a href="./">Game</a></nav></header>
+    <section class="stats-grid">
+      <article class="panel"><h1>Find a detective</h1><form id="searchStatsForm" class="inline-form"><input id="statsQuery" maxlength="64" placeholder="username or user ID" required><button class="primary">Search</button></form><p class="fineprint">User IDs are public profile identifiers. Emails and passwords are not searchable.</p></article>
+      <article id="statsResult" class="panel stats-result"><div class="empty-state">Search for a player to view their public statistics.</div></article>
+    </section>
+  </main>
+  <script type="module" src="./js/stats.js"></script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "name": "night-shift-detectives",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node --check js/config.js && node --check js/supabase.js && node --check js/auth.js && node --check js/game.js && node --check js/stats.js"
+  }
+}
