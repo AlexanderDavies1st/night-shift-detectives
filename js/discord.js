@@ -1,8 +1,9 @@
-// Version 1.1.0
+// Version 1.2.0
 // Supabase Auth dependency is loaded by js/supabase.js.
 import { supabase } from "./supabase.js";
 
 const buttons = [document.querySelector("#discordLoginBtn"), document.querySelector("#discordSignupBtn")].filter(Boolean);
+const PRODUCTION_ORIGIN = "https://night-shift-detectives.vercel.app";
 
 function toast(message) {
   const el = document.querySelector("#toast");
@@ -14,9 +15,11 @@ function toast(message) {
 }
 
 function getOAuthRedirect() {
-  // Keep the callback on the exact page the player started from.
-  // Supabase consumes the OAuth hash; this file never reloads or navigates after OAuth starts.
-  return new URL(window.location.pathname, window.location.origin).toString();
+  // Use the deployed Vercel URL in production. Keep localhost for local development.
+  const origin = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? window.location.origin
+    : PRODUCTION_ORIGIN;
+  return new URL(window.location.pathname || "/", origin).toString();
 }
 
 async function signInWithDiscord() {
@@ -28,7 +31,10 @@ async function signInWithDiscord() {
   buttons.forEach((button) => { button.disabled = true; });
   try {
     const redirectTo = getOAuthRedirect();
-    console.info("[NSD-AUTH-DISCORD] Starting OAuth", { redirectTo });
+    console.info("[NSD-AUTH-DISCORD] Starting OAuth", {
+      currentUrl: window.location.href,
+      redirectTo
+    });
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "discord",
       options: {
@@ -42,7 +48,7 @@ async function signInWithDiscord() {
       buttons.forEach((button) => { button.disabled = false; });
       return;
     }
-    console.info("[NSD-AUTH-DISCORD] OAuth redirect accepted", { urlReturned: Boolean(data?.url) });
+    console.info("[NSD-AUTH-DISCORD] OAuth redirect accepted", { urlReturned: Boolean(data?.url), redirectTo });
   } catch (error) {
     console.error("[NSD-AUTH-DISCORD] Unexpected error", error);
     toast("Discord login failed unexpectedly. Check the browser console.");
