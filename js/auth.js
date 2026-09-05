@@ -1,4 +1,4 @@
-// Version 1.3.0
+// Version 1.4.0
 // Supabase Auth dependency is loaded by js/supabase.js.
 import { supabase, isConfigured } from "./supabase.js";
 
@@ -8,10 +8,10 @@ const lobbyView = $("#lobbyView");
 const gameView = $("#gameView");
 const setupWarning = $("#setupWarning");
 
-// Supabase's email/password provider still requires an email-shaped identifier.
-// Players never enter it. .example is a reserved documentation domain and is syntactically valid.
-// Supabase Authentication > Providers > Email must have "Confirm email" disabled for this username-only flow.
-const AUTH_DOMAIN = "accounts.nightshift.example";
+// Supabase's email/password provider requires an email-shaped identifier.
+// Players never enter it. Do NOT use .example/.test domains: Supabase rejects test/example addresses.
+// Confirm email must be disabled because players do not receive or verify email.
+const AUTH_DOMAIN = "yqceksvgggfjmookfzhq.supabase.co";
 const usernameEmail = (username) => `${username.toLowerCase()}@${AUTH_DOMAIN}`;
 
 const ERROR_CODES = {
@@ -30,7 +30,7 @@ const ERROR_CODES = {
   UNEXPECTED: "NSD-AUTH-999"
 };
 
-function diagnostic(error, operation) {
+function diagnostic(error, operation, extra = {}) {
   const details = {
     operation,
     timestamp: new Date().toISOString(),
@@ -40,7 +40,8 @@ function diagnostic(error, operation) {
     status: error?.status || null,
     statusText: error?.statusText || null,
     details: error?.details || null,
-    hint: error?.hint || null
+    hint: error?.hint || null,
+    ...extra
   };
   window.__nightShiftLastAuthError = details;
   console.error("[Night Shift Auth Diagnostic]", details, error);
@@ -50,21 +51,23 @@ function diagnostic(error, operation) {
 function errorCode(error, fallback = ERROR_CODES.UNEXPECTED) {
   const text = `${error?.message || ""} ${error?.code || ""} ${error?.details || ""} ${error?.hint || ""}`.toLowerCase();
   if (error?.status === 429 || text.includes("rate limit") || text.includes("too many")) return ERROR_CODES.RATE_LIMITED;
-  if (text.includes("username already taken") || text.includes("duplicate key") || error?.code === "23505") return ERROR_CODES.USERNAME_TAKEN;
+  if (text.includes("username already taken") || text.includes("username already exists") || text.includes("duplicate key") || error?.code === "23505") return ERROR_CODES.USERNAME_TAKEN;
+  if (text.includes("nsd-auth-db-") || text.includes("trigger") || text.includes("current transaction is aborted") || text.includes("profiles")) return ERROR_CODES.DATABASE_TRIGGER_FAILED;
   if (text.includes("invalid login credentials")) return ERROR_CODES.INVALID_CREDENTIALS;
   if (text.includes("email address") && text.includes("invalid")) return ERROR_CODES.INVALID_AUTH_IDENTIFIER;
-  if (text.includes("trigger") || text.includes("current transaction is aborted") || text.includes("profiles")) return ERROR_CODES.DATABASE_TRIGGER_FAILED;
   if (error instanceof TypeError || text.includes("failed to fetch") || text.includes("networkerror")) return ERROR_CODES.NETWORK_FAILED;
   return fallback;
 }
 
 function safeMessage(error, fallback) {
-  const message = error?.message || fallback;
-  return message.replace(/accounts\.nightshift\.example/gi, "internal auth identifier").replace(/email/gi, "username");
+  return (error?.message || fallback)
+    .replace(/yqceksvgggfjmookfzhq\.supabase\.co/gi, "internal auth identifier")
+    .replace(/accounts\.nightshift\.example/gi, "internal auth identifier")
+    .replace(/email/gi, "username");
 }
 
-function showError(code, message, error = null, operation = "unknown") {
-  if (error) diagnostic(error, operation);
+function showError(code, message, error = null, operation = "unknown", extra = {}) {
+  if (error) diagnostic(error, operation, extra);
   console.error(`[${code}]`, message);
   toast(`${code}: ${message}`);
 }
@@ -98,7 +101,7 @@ async function handleSignedIn(session) {
     setView(lobbyView);
     window.dispatchEvent(new CustomEvent("detective:signed-in", { detail: session.user }));
   } catch (err) {
-    showError(ERROR_CODES.PROFILE_FAILED, "Profile could not be loaded. Check the browser console for the diagnostic details.", err, "loadProfile");
+    showError(ERROR_CODES.PROFILE_FAILED, "Profile could not be loaded. Check the browser console for diagnostics.", err, "loadProfile", { userId: session.user.id });
   }
 }
 
@@ -128,9 +131,9 @@ async function initAuth() {
     if (!/^[A-Za-z0-9_]{3,24}$/.test(username)) return showError(ERROR_CODES.INVALID_USERNAME, "Enter a valid username.");
     try {
       const { error } = await supabase.auth.signInWithPassword({ email: usernameEmail(username), password });
-      if (error) return showError(errorCode(error, ERROR_CODES.INVALID_CREDENTIALS), safeMessage(error, "Login failed."), error, "signInWithPassword");
+      if (error) return showError(errorCode(error, ERROR_CODES.INVALID_CREDENTIALS), safeMessage(error, "Login failed."), error, "signInWithPassword", { username });
     } catch (err) {
-      showError(errorCode(err, ERROR_CODES.UNEXPECTED), safeMessage(err, "Login failed unexpectedly. Check the browser console for diagnostics."), err, "signInWithPassword:exception");
+      showError(errorCode(err), safeMessage(err, "Login failed unexpectedly. Check the browser console for diagnostics."), err, "signInWithPassword:exception", { username });
     }
   });
 
@@ -144,25 +147,25 @@ async function initAuth() {
     if (password.length < 8) return showError(ERROR_CODES.INVALID_PASSWORD, "Password must be at least 8 characters.");
 
     try {
-      // Give a clear client-side collision error before Auth is called. The database trigger remains the final race-safe check.
-      const { data: existingProfile, error: profileCheckError } = await supabase.from("profiles").select("id").eq("username", username.toLowerCase()).maybeSingle();
-      if (profileCheckError) return showError(ERROR_CODES.PROFILE_FAILED, "Could not check username availability.", profileCheckError, "checkUsername");
+      const normalizedUsername = username.toLowerCase();
+      const { data: existingProfile, error: profileCheckError } = await supabase.from("profiles").select("id").eq("username", normalizedUsername).maybeSingle();
+      if (profileCheckError) return showError(ERROR_CODES.PROFILE_FAILED, "Could not check username availability.", profileCheckError, "checkUsername", { username: normalizedUsername });
       if (existingProfile) return showError(ERROR_CODES.USERNAME_TAKEN, "That username is already taken.");
 
-      const internalEmail = usernameEmail(username);
-      console.info("[NSD-AUTH-TRACE] signup request", { operation: "signUp", username, internalIdentifier: internalEmail });
+      const internalEmail = usernameEmail(normalizedUsername);
+      console.info("[NSD-AUTH-TRACE] signup request", { operation: "signUp", username: normalizedUsername, internalIdentifier: internalEmail });
       const { data, error } = await supabase.auth.signUp({
         email: internalEmail,
         password,
-        options: { data: { username: username.toLowerCase(), nickname } }
+        options: { data: { username: normalizedUsername, nickname } }
       });
-      if (error) return showError(errorCode(error, ERROR_CODES.SIGNUP_FAILED), safeMessage(error, "Account creation failed."), error, "signUp");
-      if (!data?.user) return showError(ERROR_CODES.SIGNUP_FAILED, "Supabase returned no user after signup. Check the browser console for diagnostics.", new Error("signUp returned no user"), "signUp:noUser");
-      if (!data.session) return showError(ERROR_CODES.NO_SESSION_AFTER_SIGNUP, "Account was created, but no session was returned. Confirm email must be disabled in Supabase.", new Error("signUp returned no session"), "signUp:noSession");
-      console.info("[NSD-AUTH-TRACE] signup success", { userId: data.user.id, username: username.toLowerCase() });
+      if (error) return showError(errorCode(error, ERROR_CODES.SIGNUP_FAILED), safeMessage(error, "Account creation failed."), error, "signUp", { username: normalizedUsername, internalIdentifier: internalEmail });
+      if (!data?.user) return showError(ERROR_CODES.SIGNUP_FAILED, "Supabase returned no user after signup.", new Error("signUp returned no user"), "signUp:noUser", { username: normalizedUsername });
+      if (!data.session) return showError(ERROR_CODES.NO_SESSION_AFTER_SIGNUP, "Account was created, but no session was returned. Confirm email must be disabled in Supabase.", new Error("signUp returned no session"), "signUp:noSession", { userId: data.user.id, username: normalizedUsername });
+      console.info("[NSD-AUTH-TRACE] signup success", { userId: data.user.id, username: normalizedUsername });
       toast("Account created.");
     } catch (err) {
-      showError(errorCode(err, ERROR_CODES.UNEXPECTED), safeMessage(err, "Account creation failed unexpectedly. Check the browser console for diagnostics."), err, "signUp:exception");
+      showError(errorCode(err), safeMessage(err, "Account creation failed unexpectedly. Check the browser console for diagnostics."), err, "signUp:exception", { username });
     }
   });
 
