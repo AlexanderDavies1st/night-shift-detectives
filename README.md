@@ -4,7 +4,7 @@ A vanilla HTML/CSS/JavaScript online co-op point-and-click detective game built 
 
 ## Features
 
-- Email/password accounts with secure Supabase Auth
+- Username/password player accounts without an email field in the UI
 - Unique usernames, nicknames, and public UUID user IDs
 - Public searchable statistics page
 - 1–6 player private sessions with six-character join codes
@@ -26,7 +26,8 @@ A vanilla HTML/CSS/JavaScript online co-op point-and-click detective game built 
 3. In Supabase, open **Project Settings > API** and copy the Project URL and public anon/publishable key.
 4. Put those two public values in `js/config.js`.
 5. In **Authentication > URL Configuration**, set your Site URL to your Vercel URL (for local testing, add `http://localhost:3000` as a redirect URL too).
-6. Deploy this folder to Vercel. It is a static project and needs no build command.
+6. In **Authentication > Sign In / Providers > Email**, disable **Confirm email**. The game does not ask players for an email and therefore cannot deliver a confirmation message.
+7. Deploy this folder to Vercel. It is a static project and needs no build command.
 
 Do **not** put the Supabase `service_role` secret in this project. The browser should only receive the public anon/publishable key. Security is enforced by Supabase Auth and Row Level Security.
 
@@ -48,17 +49,32 @@ Do not open `index.html` with `file://`, because browser ES modules require HTTP
 npm run check
 ```
 
+## Error codes
+
+Authentication errors shown by the game use stable codes so they can be reported without copying the entire message:
+
+- `NSD-AUTH-001` — invalid username
+- `NSD-AUTH-002` — invalid nickname
+- `NSD-AUTH-003` — invalid password
+- `NSD-AUTH-004` — Supabase rate limit
+- `NSD-AUTH-005` — username already taken
+- `NSD-AUTH-006` — invalid login credentials
+- `NSD-AUTH-007` — Supabase rejected the internal auth identifier
+- `NSD-AUTH-008` — other signup failure
+- `NSD-AUTH-009` — profile could not be loaded
+- `NSD-AUTH-010` — signup succeeded but no session was returned; check Confirm email
+- `NSD-AUTH-999` — unexpected/unknown error
+
+When reporting a problem, give me the `NSD-*` code first, then the text after it if available.
+
 ## Important production note
 
 This is a complete playable prototype, not an anti-cheat authoritative game server. Because puzzle actions originate in the browser, a determined player can inspect or manipulate client requests. For a larger competitive game, move clue validation, extraction, and stat awarding into Supabase Edge Functions / database RPCs that validate full session state server-side.
 
-## Username-only accounts
+## Username-only implementation
 
-The game UI no longer asks players for an email address. Supabase Auth still uses an internal generated identifier behind the scenes, so in your Supabase dashboard go to **Authentication → Sign In / Providers → Email** and turn **Confirm email** off. Supabase documents that disabling Confirm Email allows signup to return a session immediately.
+Supabase's email/password provider still expects an email-shaped identifier internally. The browser generates a deterministic internal identifier from the username using the reserved `.example` domain; players never see or enter an email address. Confirm email must be disabled for this flow.
 
-Players enter only:
-- Username
-- Nickname (signup only)
-- Password
+## Recent authentication fix
 
-Do not put a Supabase secret/service-role key in the website.
+The `auth.users` trigger previously converted duplicate usernames into a generic HTTP 500 database failure. The trigger has now been updated to check the username collision explicitly and return a normal duplicate error instead. Supabase's own troubleshooting documentation notes that errors during custom `auth.users` triggers can surface as `Database error saving new user` / HTTP 500 signup failures.
