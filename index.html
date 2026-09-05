@@ -24,14 +24,16 @@
         <label>Username<input id="loginUsername" type="text" maxlength="24" autocomplete="username" required></label>
         <label>Password<input id="loginPassword" type="password" autocomplete="current-password" minlength="8" required></label>
         <button class="primary" type="submit">Enter briefing room</button>
+        <button id="discordLoginBtn" class="secondary discord-login" type="button">Continue with Discord</button>
       </form>
       <form id="signupForm" class="form-stack hidden">
         <label>Username<input id="signupUsername" type="text" maxlength="24" pattern="[A-Za-z0-9_]{3,24}" required></label>
         <label>Nickname<input id="signupNickname" type="text" maxlength="28" required></label>
         <label>Password<input id="signupPassword" type="password" autocomplete="new-password" minlength="8" required></label>
         <button class="primary" type="submit">Create detective</button>
+        <button id="discordSignupBtn" class="secondary discord-login" type="button">Create account with Discord</button>
       </form>
-      <p class="fineprint">Sign in with your username and password. No email address is required.</p>
+      <p class="fineprint">Sign in with a username and password, or use Discord. No email address is required.</p>
     </section>
   </main>
 
@@ -77,6 +79,7 @@
   <dialog id="inventoryDialog" class="modal"><button id="closeInventoryBtn" class="modal-close" aria-label="Close">×</button><h2>Evidence bag</h2><div id="inventoryList" class="inventory-list"></div></dialog>
 
   <script type="module" src="./js/auth.js"></script>
+  <script type="module" src="./js/discord.js"></script>
   <script type="module" src="./js/game.js"></script>
 </body>
 </html>
