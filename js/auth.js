@@ -1,4 +1,4 @@
-// Version 1.4.0
+// Version 1.4.1
 // Supabase Auth dependency is loaded by js/supabase.js.
 import { supabase, isConfigured } from "./supabase.js";
 
@@ -53,7 +53,7 @@ function errorCode(error, fallback = ERROR_CODES.UNEXPECTED) {
   if (error?.status === 429 || text.includes("rate limit") || text.includes("too many")) return ERROR_CODES.RATE_LIMITED;
   if (text.includes("username already taken") || text.includes("username already exists") || text.includes("duplicate key") || error?.code === "23505") return ERROR_CODES.USERNAME_TAKEN;
   if (text.includes("nsd-auth-db-") || text.includes("trigger") || text.includes("current transaction is aborted") || text.includes("profiles")) return ERROR_CODES.DATABASE_TRIGGER_FAILED;
-  if (text.includes("invalid login credentials")) return ERROR_CODES.INVALID_CREDENTIALS;
+  if (text.includes("invalid login credentials") || text.includes("email not confirmed") || text.includes("email_not_confirmed")) return ERROR_CODES.INVALID_CREDENTIALS;
   if (text.includes("email address") && text.includes("invalid")) return ERROR_CODES.INVALID_AUTH_IDENTIFIER;
   if (error instanceof TypeError || text.includes("failed to fetch") || text.includes("networkerror")) return ERROR_CODES.NETWORK_FAILED;
   return fallback;
@@ -161,7 +161,22 @@ async function initAuth() {
       });
       if (error) return showError(errorCode(error, ERROR_CODES.SIGNUP_FAILED), safeMessage(error, "Account creation failed."), error, "signUp", { username: normalizedUsername, internalIdentifier: internalEmail });
       if (!data?.user) return showError(ERROR_CODES.SIGNUP_FAILED, "Supabase returned no user after signup.", new Error("signUp returned no user"), "signUp:noUser", { username: normalizedUsername });
-      if (!data.session) return showError(ERROR_CODES.NO_SESSION_AFTER_SIGNUP, "Account was created, but no session was returned. Confirm email must be disabled in Supabase.", new Error("signUp returned no session"), "signUp:noSession", { userId: data.user.id, username: normalizedUsername });
+
+      if (!data.session) {
+        const confirmed = Boolean(data.user.email_confirmed_at);
+        const diagnosticError = new Error("signUp returned no session");
+        const message = confirmed
+          ? "Account was created and confirmed, but Supabase returned no session. Check Auth configuration or session persistence."
+          : "Account was created, but Supabase returned no session because email confirmation is enabled. Disable Confirm email in Supabase Authentication > Providers > Email.";
+        return showError(ERROR_CODES.NO_SESSION_AFTER_SIGNUP, message, diagnosticError, "signUp:noSession", {
+          userId: data.user.id,
+          username: normalizedUsername,
+          emailConfirmed: confirmed,
+          sessionReturned: false,
+          authConfigRequired: !confirmed ? "disable_confirm_email" : "inspect_session_config"
+        });
+      }
+
       console.info("[NSD-AUTH-TRACE] signup success", { userId: data.user.id, username: normalizedUsername });
       toast("Account created.");
     } catch (err) {
