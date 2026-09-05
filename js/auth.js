@@ -1,4 +1,4 @@
-// Version 1.4.1
+// Version 1.5.0
 // Supabase Auth dependency is loaded by js/supabase.js.
 import { supabase, isConfigured } from "./supabase.js";
 
@@ -27,8 +27,13 @@ const ERROR_CODES = {
   NO_SESSION_AFTER_SIGNUP: "NSD-AUTH-010",
   NETWORK_FAILED: "NSD-AUTH-011",
   DATABASE_TRIGGER_FAILED: "NSD-AUTH-012",
+  OAUTH_CALLBACK_FAILED: "NSD-AUTH-013",
   UNEXPECTED: "NSD-AUTH-999"
 };
+
+let signedInUserId = null;
+let authListenerRegistered = false;
+let profileLoadPromise = null;
 
 function diagnostic(error, operation, extra = {}) {
   const details = {
@@ -54,6 +59,7 @@ function errorCode(error, fallback = ERROR_CODES.UNEXPECTED) {
   if (text.includes("username already taken") || text.includes("username already exists") || text.includes("duplicate key") || error?.code === "23505") return ERROR_CODES.USERNAME_TAKEN;
   if (text.includes("nsd-auth-db-") || text.includes("trigger") || text.includes("current transaction is aborted") || text.includes("profiles")) return ERROR_CODES.DATABASE_TRIGGER_FAILED;
   if (text.includes("invalid login credentials") || text.includes("email not confirmed") || text.includes("email_not_confirmed")) return ERROR_CODES.INVALID_CREDENTIALS;
+  if (text.includes("oauth") || text.includes("callback") || text.includes("provider")) return ERROR_CODES.OAUTH_CALLBACK_FAILED;
   if (text.includes("email address") && text.includes("invalid")) return ERROR_CODES.INVALID_AUTH_IDENTIFIER;
   if (error instanceof TypeError || text.includes("failed to fetch") || text.includes("networkerror")) return ERROR_CODES.NETWORK_FAILED;
   return fallback;
@@ -95,14 +101,29 @@ async function loadProfile(user) {
 }
 
 async function handleSignedIn(session) {
-  if (!session?.user) return setView(authView);
-  try {
-    await loadProfile(session.user);
-    setView(lobbyView);
-    window.dispatchEvent(new CustomEvent("detective:signed-in", { detail: session.user }));
-  } catch (err) {
-    showError(ERROR_CODES.PROFILE_FAILED, "Profile could not be loaded. Check the browser console for diagnostics.", err, "loadProfile", { userId: session.user.id });
+  const user = session?.user;
+  if (!user) {
+    signedInUserId = null;
+    profileLoadPromise = null;
+    window.currentProfile = null;
+    setView(authView);
+    return;
   }
+
+  // OAuth callbacks can emit INITIAL_SESSION and SIGNED_IN almost together.
+  // Only load the profile once for a given user to prevent duplicate state changes.
+  if (signedInUserId === user.id && profileLoadPromise) return profileLoadPromise;
+  signedInUserId = user.id;
+  profileLoadPromise = (async () => {
+    try {
+      await loadProfile(user);
+      setView(lobbyView);
+      window.dispatchEvent(new CustomEvent("detective:signed-in", { detail: user }));
+    } catch (err) {
+      showError(ERROR_CODES.PROFILE_FAILED, "Profile could not be loaded. Check the browser console for diagnostics.", err, "loadProfile", { userId: user.id });
+    }
+  })();
+  return profileLoadPromise;
 }
 
 function initTabs() {
@@ -115,6 +136,24 @@ function initTabs() {
   });
 }
 
+function registerAuthListener() {
+  if (authListenerRegistered) return;
+  authListenerRegistered = true;
+  supabase.auth.onAuthStateChange((event, session) => {
+    console.info("[NSD-AUTH-STATE]", event, session?.user?.id || null);
+    if (!session) {
+      signedInUserId = null;
+      profileLoadPromise = null;
+      window.currentProfile = null;
+      setView(authView);
+      window.dispatchEvent(new Event("detective:signed-out"));
+      return;
+    }
+    // Do not perform another URL navigation here. Supabase already consumes the OAuth callback.
+    void handleSignedIn(session);
+  });
+}
+
 async function initAuth() {
   initTabs();
   if (!isConfigured() || !supabase) {
@@ -123,6 +162,9 @@ async function initAuth() {
     document.querySelectorAll("#loginForm button,#signupForm button,#createGameBtn,#joinForm button").forEach((b) => b.disabled = true);
     return;
   }
+
+  // Register BEFORE getSession(). OAuth callbacks can emit their session during initialization.
+  registerAuthListener();
 
   $("#loginForm").addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -192,13 +234,6 @@ async function initAuth() {
   } catch (err) {
     showError(ERROR_CODES.NETWORK_FAILED, "Could not connect to Supabase while restoring the session.", err, "getSession:exception");
   }
-  supabase.auth.onAuthStateChange((_event, session) => {
-    if (!session) {
-      window.currentProfile = null;
-      setView(authView);
-      window.dispatchEvent(new Event("detective:signed-out"));
-    } else handleSignedIn(session);
-  });
 }
 
 initAuth();
