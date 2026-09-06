@@ -7,6 +7,9 @@
   <title>Night Shift Detectives</title>
   <link rel="stylesheet" href="./css/style.css">
   <link rel="stylesheet" href="./css/visuals.css">
+  <style>
+    #nsdGameHud{display:flex;gap:8px;align-items:center;margin-left:auto;margin-right:8px;font:600 11px 'DM Mono',monospace}#nsdGameHud span{padding:7px 9px;border:1px solid #34404d;border-radius:999px;background:#0a0f14;color:#d9e2ea}#nsdGameHud #nsdCaptured{color:#ff9b96;border-color:#8e302c;animation:nsdPulse .8s infinite alternate}.disabled-chat{opacity:.5}.captured-hotspot{opacity:1!important;border-color:#ff655f!important;background:rgba(255,70,60,.12)!important;cursor:not-allowed}.rescue-hotspot{border-color:#d8ff70!important}.hide-hotspot{background:repeating-linear-gradient(135deg,rgba(22,28,34,.9) 0 8px,rgba(41,48,54,.9) 8px 16px)!important;border:2px solid #65717d!important;box-shadow:inset 0 0 0 2px rgba(0,0,0,.28)}.modifier-grid{display:grid;gap:7px;padding:9px;background:#0b1015;border:1px solid #28313d;border-radius:9px}.modifier-grid label{display:flex!important;align-items:center;gap:7px}.switches,.memory-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.active-memory{outline:3px solid #d8ff70!important;box-shadow:0 0 18px rgba(216,255,112,.35)}.map-tags-tooltip{position:absolute;z-index:30;left:50%;bottom:100%;transform:translateX(-50%);min-width:120px;padding:7px;background:#070a0e;border:1px solid #485565;border-radius:8px;box-shadow:0 12px 30px #000;text-align:left;pointer-events:none}.map-tags-tooltip div{display:grid;gap:2px;padding:3px 0;border-bottom:1px solid #202a34}.map-tags-tooltip div:last-child{border-bottom:0}.map-tags-tooltip small{color:#81909d}.shop-buy{margin-top:8px}.modal hr{border:0;border-top:1px solid #28313d;margin:16px 0}@keyframes nsdPulse{from{opacity:.6}to{opacity:1}}
+  </style>
 </head>
 <body>
   <div id="toast" class="toast" aria-live="polite"></div>
@@ -15,7 +18,7 @@
     <section class="brand-panel">
       <div class="eyebrow">CO-OP DETECTIVE GAME</div><h1>Night Shift<br>Detectives</h1>
       <p>Break into a compromised records building, recover the evidence, avoid security, and get the whole team out.</p>
-      <div class="feature-strip"><span>1–6 players</span><span>Realtime chat</span><span>Shared puzzles</span></div>
+      <div class="feature-strip"><span>1–6 players</span><span>Realtime chat</span><span>Random operations</span><span>Shared puzzles</span></div>
     </section>
     <section class="auth-card">
       <div class="tabs"><button class="tab active" data-auth-tab="login">Log in</button><button class="tab" data-auth-tab="signup">Create account</button></div>
@@ -38,7 +41,7 @@
   <main id="lobbyView" class="app-shell hidden">
     <header class="topbar"><div><strong>Night Shift Detectives</strong><span id="profileLine"></span></div><nav><a href="./stats.html">Statistics</a><button id="logoutBtn" class="ghost">Log out</button></nav></header>
     <section class="lobby-grid">
-      <article class="panel mission-card"><div class="eyebrow">CASE 07</div><h2>The Vanishing Ledger</h2><p>A private security contractor has hidden records connecting several staged break-ins. Build a team first, then enter the operation together.</p><div class="objective-list"><span>Find the archive keycard</span><span>Decode the Morse transmission</span><span>Pick the evidence-room lock</span><span>Recover and extract with the ledger</span></div></article>
+      <article class="panel mission-card"><div class="eyebrow">CASE 07</div><h2>The Vanishing Ledger</h2><p>Build a team, configure a randomized operation, buy upgrades, and track your speed runs before entering the building.</p><div class="objective-list"><span>Random rooms up to 20</span><span>Evidence up to 15</span><span>Guards up to 8</span><span>Team rescue system</span></div></article>
       <article class="panel"><h2>Create a team</h2><p>Start a private session and configure the operation before anyone enters the building.</p><button id="createGameBtn" class="primary">Create game</button><hr><h2>Join a team</h2><form id="joinForm" class="inline-form"><input id="joinCode" maxlength="6" placeholder="ABC123" autocomplete="off" required><button class="secondary">Join</button></form></article>
     </section>
   </main>
@@ -68,7 +71,6 @@
   <dialog id="puzzleDialog" class="modal"><button id="closePuzzleBtn" class="modal-close" aria-label="Close">×</button><div id="puzzleContent"></div></dialog>
   <dialog id="inventoryDialog" class="modal"><button id="closeInventoryBtn" class="modal-close" aria-label="Close">×</button><h2>Evidence bag</h2><div id="inventoryList" class="inventory-list"></div></dialog>
   <dialog id="notesDialog" class="modal notes-modal"><button id="closeNotesBtn" class="modal-close" aria-label="Close">×</button><div class="eyebrow">FIELD NOTES</div><h2>Investigation notes</h2><p class="fineprint">These notes are private to this detective and are saved in this browser.</p><textarea id="notesText" class="notes-textarea" maxlength="12000" placeholder="Write clues, codes, suspicious details, or plans…"></textarea><div class="modal-actions"><button id="clearNotesBtn" class="ghost">Clear</button><button id="saveNotesBtn" class="primary">Save notes</button></div></dialog>
-  <dialog id="settingsDialog" class="modal settings-modal"><button id="closeSettingsBtn" class="modal-close" aria-label="Close">×</button><div class="eyebrow">PREFERENCES</div><h2>Settings</h2><div id="settingsForm" class="settings-form"></div><div class="modal-actions"><button id="resetSettingsBtn" class="ghost">Reset defaults</button><button id="saveSettingsBtn" class="primary">Apply</button></div></dialog>
 
   <script type="module" src="./js/auth.js"></script><script type="module" src="./js/discord.js"></script><script type="module" src="./js/game.js"></script><script type="module" src="./js/visuals.js"></script>
 </body>
