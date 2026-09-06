@@ -13,8 +13,7 @@
 
   <main id="authView" class="auth-shell">
     <section class="brand-panel">
-      <div class="eyebrow">CO-OP DETECTIVE GAME</div>
-      <h1>Night Shift<br>Detectives</h1>
+      <div class="eyebrow">CO-OP DETECTIVE GAME</div><h1>Night Shift<br>Detectives</h1>
       <p>Break into a compromised records building, recover the evidence, avoid security, and get the whole team out.</p>
       <div class="feature-strip"><span>1–6 players</span><span>Realtime chat</span><span>Shared puzzles</span></div>
     </section>
@@ -24,15 +23,13 @@
       <form id="loginForm" class="form-stack">
         <label>Username<input id="loginUsername" type="text" maxlength="24" autocomplete="username" required></label>
         <label>Password<input id="loginPassword" type="password" autocomplete="current-password" minlength="8" required></label>
-        <button class="primary" type="submit">Enter briefing room</button>
-        <button id="discordLoginBtn" class="secondary discord-login" type="button">Continue with Discord</button>
+        <button class="primary" type="submit">Enter briefing room</button><button id="discordLoginBtn" class="secondary discord-login" type="button">Continue with Discord</button>
       </form>
       <form id="signupForm" class="form-stack hidden">
         <label>Username<input id="signupUsername" type="text" maxlength="24" pattern="[A-Za-z0-9_]{3,24}" required></label>
         <label>Nickname<input id="signupNickname" type="text" maxlength="28" required></label>
         <label>Password<input id="signupPassword" type="password" autocomplete="new-password" minlength="8" required></label>
-        <button class="primary" type="submit">Create detective</button>
-        <button id="discordSignupBtn" class="secondary discord-login" type="button">Create account with Discord</button>
+        <button class="primary" type="submit">Create detective</button><button id="discordSignupBtn" class="secondary discord-login" type="button">Create account with Discord</button>
       </form>
       <p class="fineprint">Sign in with a username and password, or use Discord. No email address is required.</p>
     </section>
@@ -41,47 +38,38 @@
   <main id="lobbyView" class="app-shell hidden">
     <header class="topbar"><div><strong>Night Shift Detectives</strong><span id="profileLine"></span></div><nav><a href="./stats.html">Statistics</a><button id="logoutBtn" class="ghost">Log out</button></nav></header>
     <section class="lobby-grid">
-      <article class="panel mission-card"><div class="eyebrow">CASE 07</div><h2>The Vanishing Ledger</h2><p>A private security contractor has hidden records connecting several staged break-ins. Your team needs to recover all four evidence items and leave through the lobby exit.</p><div class="objective-list"><span>Find the archive keycard</span><span>Decode the Morse transmission</span><span>Pick the evidence-room lock</span><span>Recover and extract with the ledger</span></div></article>
-      <article class="panel"><h2>Create a team</h2><p>Start a private session and share its six-character code.</p><button id="createGameBtn" class="primary">Create game</button><hr><h2>Join a team</h2><form id="joinForm" class="inline-form"><input id="joinCode" maxlength="6" placeholder="ABC123" autocomplete="off" required><button class="secondary">Join</button></form></article>
+      <article class="panel mission-card"><div class="eyebrow">CASE 07</div><h2>The Vanishing Ledger</h2><p>A private security contractor has hidden records connecting several staged break-ins. Build a team first, then enter the operation together.</p><div class="objective-list"><span>Find the archive keycard</span><span>Decode the Morse transmission</span><span>Pick the evidence-room lock</span><span>Recover and extract with the ledger</span></div></article>
+      <article class="panel"><h2>Create a team</h2><p>Start a private session and configure the operation before anyone enters the building.</p><button id="createGameBtn" class="primary">Create game</button><hr><h2>Join a team</h2><form id="joinForm" class="inline-form"><input id="joinCode" maxlength="6" placeholder="ABC123" autocomplete="off" required><button class="secondary">Join</button></form></article>
+    </section>
+  </main>
+
+  <main id="teamLobbyView" class="app-shell hidden">
+    <header class="topbar"><div><strong>Operation Lobby</strong><span id="teamLobbyProfile"></span></div><nav><button id="teamLobbySettingsBtn" class="secondary">Settings</button><button id="leaveLobbyBtn" class="ghost">Leave lobby</button></nav></header>
+    <section class="team-lobby-grid">
+      <article class="panel lobby-room-card">
+        <div class="eyebrow">WAITING ROOM</div><h1>Assemble the team</h1>
+        <div class="code-display"><small>TEAM CODE</small><strong id="teamCodeLarge">------</strong><button id="copyCodeBtn" class="ghost">Copy code</button></div>
+        <div id="lobbyPlayerList" class="lobby-player-list"></div>
+        <div class="lobby-actions"><button id="startGameBtn" class="primary">Start operation</button><span id="startHint" class="fineprint">The host controls the operation settings.</span></div>
+      </article>
+      <aside class="panel host-settings-panel"><div class="panel-heading"><div><div class="eyebrow">HOST SETTINGS</div><h2>Operation setup</h2></div><span id="hostBadge" class="setting-badge">PLAYER</span></div><div id="hostSettingsForm" class="settings-form"></div></aside>
     </section>
   </main>
 
   <main id="gameView" class="game-shell hidden">
-    <header class="game-topbar">
-      <div><strong id="roomTitle">Lobby</strong><span id="gameCodeLabel"></span></div>
-      <div class="top-actions"><span id="evidenceCounter" class="evidence-pill">Evidence 0/4</span><button id="leaveGameBtn" class="ghost">Leave session</button></div>
-    </header>
+    <header class="game-topbar"><div><strong id="roomTitle">Lobby</strong><span id="gameCodeLabel"></span></div><div class="top-actions"><span id="evidenceCounter" class="evidence-pill">Evidence 0/4</span><button id="notesBtn" class="ghost">Notes</button><button id="settingsBtn" class="ghost">Settings</button><button id="leaveGameBtn" class="ghost">Leave session</button></div></header>
     <section class="game-layout">
-      <aside class="left-column">
-        <div class="panel mini-panel"><h3>Map</h3><div id="minimap" class="minimap"></div></div>
-        <div class="panel mini-panel"><h3>Team</h3><div id="playerList" class="player-list"></div></div>
-      </aside>
-
-      <section class="scene-column">
-        <div id="guardBanner" class="guard-banner hidden"><strong>SECURITY APPROACHING</strong><span id="guardCountdown">5</span><small>Hide before the guard arrives.</small></div>
-        <div id="scene" class="scene" tabindex="0">
-          <div class="scene-vignette"></div>
-          <div id="sceneLabel" class="scene-label"></div>
-          <div id="hotspots" class="hotspots"></div>
-          <div id="playerChips" class="player-chips"></div>
-        </div>
-        <div class="scene-toolbar"><button id="inventoryBtn" class="secondary">Evidence bag</button><button id="hintBtn" class="ghost">Current objective</button><span id="statusText">Click a highlighted area to investigate.</span></div>
-      </section>
-
-      <aside class="right-column panel chat-panel">
-        <div class="chat-head"><h3>Team chat</h3><span id="onlineCount">0 online</span></div>
-        <div id="chatMessages" class="chat-messages"></div>
-        <form id="chatForm" class="chat-form"><input id="chatInput" maxlength="300" placeholder="Message your team…" autocomplete="off"><button>Send</button></form>
-      </aside>
+      <aside class="left-column"><div class="panel mini-panel"><h3>Map</h3><div id="minimap" class="minimap"></div></div><div class="panel mini-panel"><h3>Team</h3><div id="playerList" class="player-list"></div></div></aside>
+      <section class="scene-column"><div id="guardBanner" class="guard-banner hidden"><strong>SECURITY APPROACHING</strong><span id="guardCountdown">5</span><small>Hide before the guard arrives.</small></div><div id="scene" class="scene" tabindex="0"><div class="scene-vignette"></div><div id="sceneLabel" class="scene-label"></div><div id="hotspots" class="hotspots"></div><div id="playerChips" class="player-chips"></div></div><div class="scene-toolbar"><button id="inventoryBtn" class="secondary">Evidence bag</button><button id="hintBtn" class="ghost">Current objective</button><span id="statusText">Click a highlighted area to investigate.</span></div></section>
+      <aside class="right-column panel chat-panel"><div class="chat-head"><h3>Team chat</h3><span id="onlineCount">0 online</span></div><div id="chatMessages" class="chat-messages"></div><form id="chatForm" class="chat-form"><input id="chatInput" maxlength="300" placeholder="Message your team…" autocomplete="off"><button>Send</button></form></aside>
     </section>
   </main>
 
   <dialog id="puzzleDialog" class="modal"><button id="closePuzzleBtn" class="modal-close" aria-label="Close">×</button><div id="puzzleContent"></div></dialog>
   <dialog id="inventoryDialog" class="modal"><button id="closeInventoryBtn" class="modal-close" aria-label="Close">×</button><h2>Evidence bag</h2><div id="inventoryList" class="inventory-list"></div></dialog>
+  <dialog id="notesDialog" class="modal notes-modal"><button id="closeNotesBtn" class="modal-close" aria-label="Close">×</button><div class="eyebrow">FIELD NOTES</div><h2>Investigation notes</h2><p class="fineprint">These notes are private to this detective and are saved in this browser.</p><textarea id="notesText" class="notes-textarea" maxlength="12000" placeholder="Write clues, codes, suspicious details, or plans…"></textarea><div class="modal-actions"><button id="clearNotesBtn" class="ghost">Clear</button><button id="saveNotesBtn" class="primary">Save notes</button></div></dialog>
+  <dialog id="settingsDialog" class="modal settings-modal"><button id="closeSettingsBtn" class="modal-close" aria-label="Close">×</button><div class="eyebrow">PREFERENCES</div><h2>Settings</h2><div id="settingsForm" class="settings-form"></div><div class="modal-actions"><button id="resetSettingsBtn" class="ghost">Reset defaults</button><button id="saveSettingsBtn" class="primary">Apply</button></div></dialog>
 
-  <script type="module" src="./js/auth.js"></script>
-  <script type="module" src="./js/discord.js"></script>
-  <script type="module" src="./js/game.js"></script>
-  <script type="module" src="./js/visuals.js"></script>
+  <script type="module" src="./js/auth.js"></script><script type="module" src="./js/discord.js"></script><script type="module" src="./js/game.js"></script><script type="module" src="./js/visuals.js"></script>
 </body>
 </html>
